@@ -1,0 +1,2 @@
+.gitattributes export-ignore
+tests.jsx export-ignore
