@@ -6,9 +6,9 @@ ExtendScript Preset Manager (ESPM) is a preset manager for `ExtendScript`. This 
 Usage
 -----
 
-1. Include `espm.js` into your script by using the preprocessor directive:
+1. Include `presetManager.js` into your script by using the preprocessor directive:
     
-    #include espm.js
+    #include presetManager.js
 
 2. Create a new Preset Manager with your presets:
 

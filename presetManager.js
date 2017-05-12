@@ -1,6 +1,6 @@
 /*
 
-    espm.js
+    presetManager.js
 
     An array based preset manager for extendscript    
 
@@ -1159,6 +1159,6 @@ if (typeof JSON !== "object") {
     }
 }());
 
-// END espm.js
+// END presetManager.js
 
 

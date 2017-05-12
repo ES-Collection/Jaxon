@@ -3,7 +3,7 @@
 /*------------------------------------------
     S E T U P
 ------------------------------------------*/
-#include 'espm.js'
+#include 'presetManager.js'
 
 var standardPresets = [
     { name : "Template"  , bool : false , obj : { x :   0, y :   0 } },
@@ -85,8 +85,10 @@ buttonGroup.add('button', undefined, 'OK'    , {name: 'ok'     });
 /*------------------------------------------
     Save SUI data into Presets
 ------------------------------------------*/
-if(ui.show() == 1) {
+var result = ui.show();
+if( result == 1) {
     // Save and return 'last used' setting
     var userSetting = Pm.Widget.saveLastUsed();
     alert( "The users settings:\n" + JSON.stringify(userSetting) );
 }
+
