@@ -25,6 +25,12 @@ Usage
 Review the Wiki for [API overview](https://github.com/GitBruno/ESPM/wiki/API). Also look at [`sample_sui.jsx`](https://github.com/GitBruno/ESPM/blob/master/sample_sui.jsx) for a complete setup.
 
 
+Dependencies
+------------
+ExtendScript does not include a JSON implementation natively so this manager will load it for you. 
+ESPM will not override any existing JSON object so you can roll your own too.
+
+
 Requests
 --------
 
