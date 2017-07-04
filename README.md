@@ -1,4 +1,4 @@
-ESMP  
+ESPM  
 ====
 ExtendScript Preset Manager (ESPM) is a preset manager for `ExtendScript`. This manager makes it easy to load and save presets to the user data-folder in JSON format.
 
