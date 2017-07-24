@@ -105,15 +105,15 @@ var tests = {
     newPresets = Pm.Presets.get();
     assert("Received wrong preset 1", newPresets[newPresets.length-1].name == "[ Test 04 ]");
     
-    Pm.Presets.add(testPreset04, 1);
+    Pm.Presets.add(testPreset04, {position: 1});
     newPresets = Pm.Presets.get();
     assert("Received wrong preset 2", newPresets[1].name == "[ Test 04 ]");
     
-    Pm.Presets.add(testPreset04, -2);
+    Pm.Presets.add(testPreset04, {position: -2});
     newPresets = Pm.Presets.get();
     assert("Received wrong preset 3", newPresets[newPresets.length-2].name == "[ Test 04 ]");
 
-    Pm.Presets.add(testPreset04, -1);
+    Pm.Presets.add(testPreset04, {position: -1});
     newPresets = Pm.Presets.get();
     assert("Received wrong preset 4", newPresets[newPresets.length-1].name == "[ Test 04 ]");
 
@@ -181,8 +181,8 @@ var tests = {
 
     Pm.Presets.load([testPreset01,testPreset01,testPreset02,testPreset02,testPreset03]);
 
-    tempPreset.temporaryPreset = true;
-    Pm.Presets.add(tempPreset, 0);
+    Pm.Presets.add(tempPreset, {temporary: true});
+
     assert("Did not added temp preset", Pm.Presets.get().length == 6);
     Pm.Presets.saveToDisk();
     Pm.Presets.loadFromDisk();
