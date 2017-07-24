@@ -34,7 +34,7 @@ var testPreset03 = { name  : "Test 03",
 var standardPresets = [testPreset01,testPreset02,testPreset03];
 
 // Load a new instance of Pm
-var Pm = new presetManager("Jaxon_Presets_Test", standardPresets, Template);
+var Pm = new presetManager("ESPM_Presets_Test", standardPresets, Template);
 Pm.Presets.removeFromDisk(); // Force clean
 
 /*------------------------------------------
@@ -152,7 +152,7 @@ var tests = {
 
     assert("Did not remove from disk", presetsFile.exists == false);
 
-    Pm = new presetManager("Jaxon_Presets_Test_2", [testPreset01,testPreset01,testPreset01,testPreset01,testPreset01,testPreset01], Template);
+    Pm = new presetManager("ESPM_Presets_Test_2", [testPreset01,testPreset01,testPreset01,testPreset01,testPreset01,testPreset01], Template);
     var presetsFile = File( Pm.getPresetsFilePath() );
     assert("File does not exist", presetsFile.exists);
 
@@ -164,6 +164,29 @@ var tests = {
 
     reset_testEnv( standardPresets, Template );
     assert("Did not disk", Pm.Presets.get().length == 3);
+  },
+
+  /*
+
+    T E S T  T E M P  P R E S E T
+    ------------------------------
+    
+  */
+  test_dont_save_temp_presets_to_disk: function() {
+    var tempPreset = { name  : "TEMP",
+                       bool  : false,
+                       arr   : [8,9,10,11],
+                       obj   : { x : 1, y : 2 },
+                       num   : 1 };
+
+    Pm.Presets.load([testPreset01,testPreset01,testPreset02,testPreset02,testPreset03]);
+
+    tempPreset.temporaryPreset = true;
+    Pm.Presets.add(tempPreset, 0);
+    assert("Did not added temp preset", Pm.Presets.get().length == 6);
+    Pm.Presets.saveToDisk();
+    Pm.Presets.loadFromDisk();
+    assert("Saved temp preset to disk", Pm.Presets.get().length == 5);
   },
 
   /*
@@ -243,7 +266,7 @@ var tests = {
 ------------------------------------------*/
 
 function reset_testEnv( standardPresets, Template ) {
-  Pm = new presetManager("Jaxon_Presets_Test", standardPresets, Template);
+  Pm = new presetManager("ESPM_Presets_Test", standardPresets, Template);
   Pm.reset();
 }
 
