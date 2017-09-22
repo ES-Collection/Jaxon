@@ -294,6 +294,10 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
         function outOfRange( pos, len ) {
             var pos = parseInt(pos);
             var len = parseInt(len);
+            if( len == 0 ) {
+                // Everything is out of range :)
+                return true;
+            }
             if(pos > len) {
                 return true;
             }
