@@ -348,7 +348,7 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
             // Sample usage: Espm.getPresetByIndex( 3 );
             var len = _Presets.length;
             if( outOfRange( position, len ) ) {
-                alert("Preset Manager\nThere is no preset at index " + i);
+                alert("Preset Manager\nThere is no preset at index " + position);
                 return false;
             }
             var i = calcIndex( parseInt(position), len );
