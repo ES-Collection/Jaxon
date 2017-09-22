@@ -22,7 +22,7 @@ Usage
 
     `Pm.Widget.attachTo( Window, KeyID, myDataPort );`
 
-Review the Wiki for [API overview](https://github.com/GitBruno/ESPM/wiki/API). Also look at [`sample_sui.jsx`](https://github.com/GitBruno/ESPM/blob/master/sample_sui.jsx) for a complete setup.
+Review the [Wiki](https://github.com/GitBruno/ESPM/wiki/Home) for API overview. Also look at [`sample_sui.jsx`](https://github.com/GitBruno/ESPM/blob/master/sample_sui.jsx) for a complete setup.
 
 
 Dependencies
