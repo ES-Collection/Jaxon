@@ -6,8 +6,8 @@
 
     Bruno Herfst 2017
 
-    Version 1.2
-    
+    Version 1.2.1
+
     MIT license (MIT)
     
     https://github.com/GitBruno/ESPM
@@ -654,7 +654,7 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
         }
 
         WidgetCreator.attachTo = function ( SUI_Group, listKeyID, Port, Options ) {
-            var onloadIndex = 0;
+            var onloadIndex = null;
             listKey = String(listKeyID);
 
             if(! (Port && Port.hasOwnProperty('renderData') && Port.hasOwnProperty('getData')) ) {
@@ -765,7 +765,12 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
             }
             
             // Load selected dropdown
-            WidgetCreator.loadIndex( onloadIndex );
+            if( isNaN(onloadIndex) ) {
+                WidgetCreator.loadIndex( onloadIndex );
+            } else {
+                // AKA load session state
+                DataPort.renderUiPreset();
+            }
             return createMsg( true, "Done");
         }
 
