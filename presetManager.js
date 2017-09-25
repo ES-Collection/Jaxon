@@ -6,8 +6,8 @@
 
     Bruno Herfst 2017
 
-    Version 1.2.1
-
+    Version 1.2.2
+    
     MIT license (MIT)
     
     https://github.com/GitBruno/ESPM
@@ -153,7 +153,13 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
     function updatePreset ( oldPreset, ignoreKeys ) {
         var ignoreKeys = ignoreKeys || [];
         if(! ignoreKeys instanceof Array) {
-            throw "The function updatePreset expects ignoreKeys be type of array."
+            throw "The function updatePreset expects ignoreKeys to be instance of Array."
+        }
+        if( oldPreset == undefined ) {
+        	return Template.getInstance();
+        }
+        if(! oldPreset instanceof Object) {
+        	throw "The function updatePreset expects Preset to be instance of Object."
         }
         // Create a copy of the standard preset
         var newPreset  = Template.getInstance();
