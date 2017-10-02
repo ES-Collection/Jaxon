@@ -646,16 +646,12 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
         }
 
         WidgetCreator.loadIndex = function( i ) {
-            // Loads data in UiPreset and update UI
-            if ( i > 0 ) {
-                // Presets don't include [New Preset]
-                Espm.UiPreset.loadIndex( i-1 );
-            } else if ( i <= 0 ) {
-                // Get from back
-                Espm.UiPreset.loadIndex( i );
-            }
+            // Load data in UiPreset
+            Espm.UiPreset.loadIndex( i );
             // Update SUI
             DataPort.renderUiPreset();
+            presetsDrop.selection = getDropDownIndex( i+1, presetDropList.length );
+            return true;
         }
 
         WidgetCreator.attachTo = function ( SUI_Group, listKeyID, Port, Options ) {
