@@ -6,7 +6,7 @@
 
     Bruno Herfst 2017
 
-    Version 1.2.2
+    Version 1.2.3
     
     MIT license (MIT)
     
@@ -414,7 +414,7 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
         }
 
         PresetsController.addUnique = function ( Preset, key, options ) {
-            // Sample usage: Espm.Presets.addUnique( Preset, 'name' );
+            // Sample usage: PresetManager.Presets.addUnique( Preset, 'name' );
             var silently = false;
             var position = -1;
 
@@ -441,7 +441,6 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
 
             var newLen = _Presets.length+1;
             PresetsController.add( Preset, {position: position} );
-
             return _Presets.length == newLen;
         }
         
@@ -725,14 +724,24 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
                 }
             }
 
-            WidgetCreator.reset = function() {
+            WidgetCreator.updatePresetsDrop = function( selectIndex ) {
+                // This function will update the drop down without updating UI input values
                 updateUI = false;
                 updatePresetData();
                 presetsDrop.removeAll();
-                for (var i=0, len=presetDropList.length; i<len; i++) {
+                var len = presetDropList.length; 
+                for (var i=0; i<len; i++) {
                     presetsDrop.add('item', presetDropList[i] );
-                };
+                }
+                presetsDrop.selection = isNaN(selectIndex) ? 0 : calcIndex( selectIndex, len );
                 updateUI = true;
+                return createMsg( true, "Done");
+            }
+
+            WidgetCreator.reset = function() {
+                // Update Presets Dropdown
+                WidgetCreator.updatePresetsDrop();
+                // Clear UI and update button states
                 presetsDrop.selection = 0;
                 return createMsg( true, "Done");
             }
@@ -752,7 +761,7 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
                         return _addUiPresetToPresets();
                     }
                     Espm.UiPreset.setProp( listKey, presetName );
-                    // Optional?
+                    // Add preset to end
                     Espm.Presets.addUnique( Espm.UiPreset.get(), listKey, {position:-1} );
                     WidgetCreator.reset();
                     presetsDrop.selection = presetsDrop.items.length-1;
