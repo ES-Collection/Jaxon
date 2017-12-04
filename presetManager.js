@@ -1,12 +1,12 @@
 /*
 
-    presetManager.js
+    Jax.js
 
     An array based preset manager for extendscript    
 
     Bruno Herfst 2017
 
-    Version 1.2.3
+    Version 1.2.4
     
     MIT license (MIT)
     
@@ -31,7 +31,7 @@
 
 var presetManager = function( fileName, standardPresets, TemplatePreset ) {
     // ref to self
-    var Espm = this;
+    var Jax = this;
 
     // Create copy of standardPresets
     var standardPresets = JSON.parse(JSON.stringify(standardPresets));
@@ -39,7 +39,7 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
     // standard file path
     var filePath = Folder.userData + "/" + fileName;
     
-    Espm.getPresetsFilePath = function () {
+    Jax.getPresetsFilePath = function () {
         return filePath;
     }
 
@@ -325,7 +325,7 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
         }
 
         PresetsController.getByKey = function ( key, val ) {
-            // Sample usage: Espm.Presets.getByKey('id',3);
+            // Sample usage: Jax.Presets.getByKey('id',3);
             // Please note that this function returns the first
             // preset it can find
             var len = _Presets.length;
@@ -338,7 +338,7 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
         }
 
         PresetsController.getIndex = function ( key, val ) {
-            // Sample usage: Espm.Presets.getIndex('name','this');
+            // Sample usage: Jax.Presets.getIndex('name','this');
             // returns array with matches
             var matches = new Array();
             var len = _Presets.length;
@@ -351,7 +351,7 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
         }
 
         PresetsController.getByIndex = function ( position ) {
-            // Sample usage: Espm.getPresetByIndex( 3 );
+            // Sample usage: Jax.getPresetByIndex( 3 );
             var len = _Presets.length;
             if( outOfRange( position, len ) ) {
                 alert("Preset Manager\nThere is no preset at index " + position);
@@ -362,7 +362,7 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
         }
 
         PresetsController.getPropList = function ( key ) {
-            if( !Espm.UiPreset.get().hasOwnProperty( key ) ) {
+            if( !Jax.UiPreset.get().hasOwnProperty( key ) ) {
                 alert("Preset Manager\nCan't create propertylist with key " + key);
                 return [];
             }
@@ -463,7 +463,7 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
         }
 
         PresetsController.removeWhere = function ( key, val ) {
-            // Sample usage: Espm.Presets.removeWhere('id',3);
+            // Sample usage: Jax.Presets.removeWhere('id',3);
             // This function removes any preset that contains key - val match
             // It returns true if any presets have been removed
             var success = false;
@@ -567,7 +567,7 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
 
         function createDropDownList(){
             // Check listKey and load dropDown content
-            presetDropList = Espm.Presets.getPropList( listKey );
+            presetDropList = Jax.Presets.getPropList( listKey );
             // Add new (clear) preset to dropdown list
             presetDropList.unshift( newPresetName );
         }
@@ -583,13 +583,13 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
 
         WidgetCreator.activateLastUsed = function () {
             // This function resets the dropdown to last (Last Used)
-            presetsDrop.selection = Espm.Presets.getIndex( listKey, lastUsedPresetName )[0]+1;
+            presetsDrop.selection = Jax.Presets.getIndex( listKey, lastUsedPresetName )[0]+1;
             presetBut.text = ButtonText.save;
             return createMsg ( true, "Done" );
         }
 
         WidgetCreator.saveUiPreset = function () {
-            Espm.UiPreset.load( DataPort.getData() );
+            Jax.UiPreset.load( DataPort.getData() );
             return createMsg ( true, "Done" );
         }
 
@@ -599,7 +599,7 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
             // Process Options
             if(options && options.hasOwnProperty('updateProps')) {
                 for ( var i = 0; i < options.updateProps.length; i++ ) {
-                    Espm.UiPreset.setProp( options.updateProps[i].key, options.updateProps[i].value );
+                    Jax.UiPreset.setProp( options.updateProps[i].key, options.updateProps[i].value );
                 }
             }
         
@@ -608,8 +608,8 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
                 position = parseInt(options.position);
             }
 
-            Espm.UiPreset.save( position );
-            Espm.Presets.saveToDisk();
+            Jax.UiPreset.save( position );
+            Jax.Presets.saveToDisk();
             
             return createMsg ( true, "Done" );
         }
@@ -617,18 +617,18 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
         WidgetCreator.overwritePreset = function( key, val, options ) {
             // Save SUI data
             WidgetCreator.saveUiPreset();
-            Espm.UiPreset.setProp( key, val );
+            Jax.UiPreset.setProp( key, val );
 
             // Process Options
             var index = -1;
             if(options && options.hasOwnProperty('position')) {
                 index = parseInt(options.position);
             } else {
-                index = Espm.Presets.getIndex( key, val );
+                index = Jax.Presets.getIndex( key, val );
             }
 
-            Espm.Presets.addUnique( Espm.UiPreset.get(), key, {position: index, silently: true} );
-            Espm.Presets.saveToDisk();
+            Jax.Presets.addUnique( Jax.UiPreset.get(), key, {position: index, silently: true} );
+            Jax.Presets.saveToDisk();
             return createMsg ( true, "Done" );
         }
 
@@ -638,7 +638,7 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
             } catch ( err ) {
                 alert(err)
             }
-            return Espm.UiPreset.get();
+            return Jax.UiPreset.get();
         }
 
         WidgetCreator.reset = function() {
@@ -647,7 +647,7 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
 
         WidgetCreator.loadIndex = function( i ) {
             // Load data in UiPreset
-            Espm.UiPreset.loadIndex( i );
+            Jax.UiPreset.loadIndex( i );
             // Update SUI
             DataPort.renderUiPreset();
             presetsDrop.selection = getDropDownIndex( i+1, presetDropList.length );
@@ -662,7 +662,7 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
                 return createMsg( false, "Could not establish data port.");
             }
             DataPort.renderUiPreset = function () {
-                Port.renderData( Espm.UiPreset.get() );
+                Port.renderData( Jax.UiPreset.get() );
             }
             DataPort.getData = Port.getData;
 
@@ -706,9 +706,9 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
                 if(updateUI) {
                     // Load data in UiPreset
                     if(this.selection.index == 0) {
-                        Espm.UiPreset.reset();
+                        Jax.UiPreset.reset();
                     } else {
-                        Espm.UiPreset.loadIndex( this.selection.index-1 );
+                        Jax.UiPreset.loadIndex( this.selection.index-1 );
                     }
                     DataPort.renderUiPreset();
                     // Update button
@@ -756,9 +756,9 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
                         // Recurse
                         return _addUiPresetToPresets();
                     }
-                    Espm.UiPreset.setProp( listKey, presetName );
+                    Jax.UiPreset.setProp( listKey, presetName );
                     // Add preset to end
-                    Espm.Presets.addUnique( Espm.UiPreset.get(), listKey, {position:-1} );
+                    Jax.Presets.addUnique( Jax.UiPreset.get(), listKey, {position:-1} );
                     WidgetCreator.reset();
                     presetsDrop.selection = presetsDrop.items.length-1;
                 }
@@ -766,13 +766,13 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
 
             presetBut.onClick = function () { 
                 if( this.text == ButtonText.clear ) {
-                    Espm.Presets.remove( presetsDrop.selection.index - 1 );
+                    Jax.Presets.remove( presetsDrop.selection.index - 1 );
                     WidgetCreator.reset();
                 } else { // Save preset
-                    Espm.UiPreset.load( DataPort.getData() );
+                    Jax.UiPreset.load( DataPort.getData() );
                     _addUiPresetToPresets();
                 }
-                Espm.Presets.saveToDisk();
+                Jax.Presets.saveToDisk();
             }
             
             // Load selected dropdown
@@ -789,48 +789,48 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
 
     // current preset (The presets we manipulate)
     // We need to buils these
-    Espm.Presets  = new presetsController( standardPresets );
+    Jax.Presets  = new presetsController( standardPresets );
     
     // create a data controller for UiPreset
-    Espm.UiPreset = new presetController( TemplatePreset );
+    Jax.UiPreset = new presetController( TemplatePreset );
     
     // create widget builder
-    Espm.Widget = new widgetCreator();
+    Jax.Widget = new widgetCreator();
 
     // Extend presetController UiPreset
-    Espm.UiPreset.save = function( position ) {
+    Jax.UiPreset.save = function( position ) {
         // position or index, negative numbers are calculated from the back -1 == last
-        return Espm.Presets.add( Espm.UiPreset.get(), {position: position} );
+        return Jax.Presets.add( Jax.UiPreset.get(), {position: position} );
     }
 
-    Espm.UiPreset.loadIndex = function ( index ) {
-        var len = Espm.Presets.get().length;
+    Jax.UiPreset.loadIndex = function ( index ) {
+        var len = Jax.Presets.get().length;
         var i = Math.abs(parseInt(index));
         if(i > len-1) {
             alert("Preset Manager\nLoad index is not a valid preset index: " + index);
             return createMsg ( false, "Not a valid preset index." );
         }
-        Espm.UiPreset.load( Espm.Presets.getByIndex( i ) );
+        Jax.UiPreset.load( Jax.Presets.getByIndex( i ) );
         return createMsg ( true, "Done" );
     }
 
-    Espm.UiPreset.reset = function ( ) {
-        Espm.UiPreset.load( Template.getInstance() );
+    Jax.UiPreset.reset = function ( ) {
+        Jax.UiPreset.load( Template.getInstance() );
     }
 
-    Espm.reset = function( hard ) {
+    Jax.reset = function( hard ) {
         var hard = (hard == true);
         if( hard ) {
-            Espm.Presets.reset();
-            Espm.Presets.saveToDisk();
+            Jax.Presets.reset();
+            Jax.Presets.saveToDisk();
         } else {
-            Espm.Presets.loadFromDisk();
+            Jax.Presets.loadFromDisk();
         }
-        Espm.UiPreset.reset();
-        Espm.Widget.reset();
+        Jax.UiPreset.reset();
+        Jax.Widget.reset();
     }
 
-    Espm.format = function ( preset ) {
+    Jax.format = function ( preset ) {
         return updatePreset ( preset );
     }
 
@@ -842,12 +842,12 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
     //---------    
     // Save the standard presets if not allready exist
     if(!fileExist( filePath ) ){
-        if( ! Espm.Presets.saveToDisk() ){
-            throw("Failed to start Espm\nUnable to save presets to " + filePath);
+        if( ! Jax.Presets.saveToDisk() ){
+            throw("Failed to start Jax\nUnable to save presets to " + filePath);
         }
     }
     // Load the presets
-    Espm.Presets.loadFromDisk();
+    Jax.Presets.loadFromDisk();
 };
 
 //----------------------------------------------------------------------------------

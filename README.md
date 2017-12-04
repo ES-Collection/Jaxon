@@ -1,19 +1,19 @@
-ExtendScript Preset Manager 
-===========================
+Jax 
+===
 
-ExtendScript Preset Manager (ESPM) is a preset manager for `ExtendScript`. This manager makes it easy to load and save presets to the user data-folder in JSON format.
+Jax is a preset manager for `ExtendScript`. This manager makes it easy to load and save presets to the user data-folder in JSON format.
 
 
 Usage
 -----
 
-1. Include `presetManager.js` into your script by using the preprocessor directive:
+1. Include `jax.js` into your script by using the preprocessor directive:
     
-    `#include presetManager.js`
+    `#include jax.js`
 
 2. Create a new Preset Manager with your presets:
 
-    `var Pm = new presetManager( "file_name.json", presets );`
+    `var Jax = new presetManager( "file_name.json", presets );`
 
 3. Create `get()` and `set()` functions that move data in and out of your interface and attach them to your `DataPort`
 
@@ -21,9 +21,9 @@ Usage
 
 4. Now attach the widget to your interface:
 
-    `Pm.Widget.attachTo( Window, KeyID, myDataPort );`
+    `Jax.Widget.attachTo( Window, KeyID, myDataPort );`
 
-Review the [Wiki](https://github.com/GitBruno/ESPM/wiki/Home) for API overview. Also look at [`sample_sui.jsx`](https://github.com/GitBruno/ESPM/blob/master/sample_sui.jsx) for a complete setup.
+Review the [Wiki](https://github.com/GitBruno/Jax/wiki/Home) for API overview. Also look at [`sample_sui.jsx`](https://github.com/GitBruno/Jax/blob/master/sample_sui.jsx) for a complete setup.
 
 
 Dependencies
