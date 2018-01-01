@@ -3,23 +3,36 @@
 /*------------------------------------------
     S E T U P
 ------------------------------------------*/
-#include 'presetManager.js'
+#include 'jaxon.jsxinc'
+
+var schema = {
+    "type": "object",
+    "properties": {
+        "name":    { "type": "string", "default": "New Preset" },
+        "bool":    { "type": ["null", "boolean"] },
+        "obj":     { "type": "object",
+            "properties": {
+                "x": { "type": "number", "default": 0 },
+                "y": { "type": "number", "default": 0 }
+            }
+        }
+    }
+};
 
 var standardPresets = [
-    { name : "Template"  , bool : false , obj : { x :   0, y :   0 } },
     { name : "Preset 01" , bool : true  , obj : { x :   1, y :   2 } },
     { name : "Preset 02" , bool : false , obj : { x :  30, y :  40 } },
     { name : "Preset 03" , bool : true  , obj : { x : 507, y : 680 } }];
 
 /*------------------------------------------
-    Load ESPM
+    Load Jaxon
 ------------------------------------------*/
-var Pm = new presetManager( "ESPM_Sample.json", standardPresets );
+var Pm = new presetManager( "Jaxon_Sample.json", schema, standardPresets );
 
 /*------------------------------------------
     Build SUI
 ------------------------------------------*/
-var ui = new Window('dialog', 'ESPM Sample');
+var ui = new Window('dialog', 'Jaxon Sample');
     ui.orientation = 'column';
     ui.alignChildren = 'left';
     ui.margins = [15,10,15,15];
@@ -59,8 +72,9 @@ var yInput = inputGroup.add('edittext'   , undefined, "0");
 function getData() {
     // This function returns all UI data
     return { bool  : boolCheck.value,
-             obj   : { x : xInput.text, y : yInput.text } };
+             obj   : { x : parseFloat(xInput.text), y : parseFloat(yInput.text) } };
 }
+
 function renderData( data ) {
     boolCheck.value = data.bool;
     xInput.text     = data.obj.x;
@@ -89,6 +103,6 @@ var result = ui.show();
 if( result == 1) {
     // Save and return 'last used' setting
     var userSetting = Pm.Widget.saveLastUsed();
-    alert( "The users settings:\n" + JSON.stringify(userSetting) );
+    alert( "The users settings:\n" + JSON.stringify( userSetting ));
 }
 

@@ -1,81 +1,65 @@
-/*
-
-    Jax.js
-
-    An array based preset manager for extendscript    
-
-    Bruno Herfst 2017
-
-    Version 1.2.4
-    
-    MIT license (MIT)
-    
-    https://github.com/GitBruno/ESPM
-
-*/
-
-
 /* -------------------------------------------------------------------------------
     
     @param fileName : String
         Name of file to be saved in user data folder
     
-    @param standardPresets : Array of Objects
-        Array of initial presets that are loaded if no presetsFile is found at filePath
-    
-    @param TemplatePreset : Object
-        A template preset to benchmark against. Also used as default.
-        If not supplied TemplatePreset is first Preset in standardPresets.
+    @param Schema : Object
+        A schema to validate against. Also used to generate defaults
+
+    @param standardPresets : Array
+        Initial presets that are loaded if no presetsFile is found at filePath
 
 ------------------------------------------------------------------------------- */
 
-var presetManager = function( fileName, standardPresets, TemplatePreset ) {
+var presetManager = function( fileName, Schema, standardPresets ) {
     // ref to self
-    var Jax = this;
-
-    // Create copy of standardPresets
-    var standardPresets = JSON.parse(JSON.stringify(standardPresets));
+    var Jaxon    = this;
 
     // standard file path
-    var filePath = Folder.userData + "/" + fileName;
-    
-    Jax.getPresetsFilePath = function () {
-        return filePath;
+    var filePath = Folder.userData + "/" + String(fileName);
+    var valid  = true;
+    var errors = [];
+
+    function userException(message) {
+        this.message = message;
+        this.name = 'Error';
     }
 
-    /////////////////////
-    // T E M P L A T E //
-    /////////////////////
-    if ( typeof TemplatePreset !== 'object' ) {
-        // TemplatePreset is optional
-        TemplatePreset = standardPresets.shift();
+    // S C H E M A S
+    //-------------------------
+    // Load Jaw for preset and validate preset Schema
+    var presetJaw = new jaw( Schema );
+    if(!presetJaw.isValid()) {
+        throw presetJaw.errors()[0];
+    }
+    // Create Schema for standardPresets
+    // This preset manager works on the premise
+    // that presets are objects collected in an array
+    var PresetsSchema = { "type": "array", "items": Schema };
+    var presetsJaws = new jaw( PresetsSchema );
+    if(!presetsJaws.isValid()) {
+        throw userException(presetsJaws.errors());
     }
 
-    var Template = ( function() { 
-        // Create a new template by calling Template.getInstance();
-        function createTemplate() {
-            var newTemplate = new Object();
-            for(var k in TemplatePreset) newTemplate[k]=TemplatePreset[k];
-            return newTemplate;
-        }
-        return {
-            getInstance: function () {
-                return createTemplate();
-            }
-        };
-    })();
+    // Validate standardPresets
+    //-------------------------
+    if ( typeof standardPresets === 'undefined') standardPresets = [Jaws.getTemplate(true)];
+    if ( Array.isArray( standardPresets ) ) {
+        standardPresets = JSON.clone( standardPresets );
+    } else {
+        throw new userException("Param standardPresets needs to be type of array but is " + String(typeof standardPresets));
+    }
+    if(!presetsJaws.wrap(standardPresets).isValid()) {
+        throw userException(presetsJaws.errors());
+    }
 
-    ///////////////////////////////////////
-    // P R I V A T E   F U N C T I O N S //
-    ///////////////////////////////////////
+    //-------------------------------------------------
+    // P R I V A T E   F U N C T I O N S
+    //-------------------------------------------------
+
     function createMsg ( bool, comment ) {
         // Standard return obj
         return {success: Boolean(bool), comment: String( comment ) };
-    }
-
-    function copy_of ( something ) {
-        //clones whatever it is given via JSON conversion
-        return JSON.parse(JSON.stringify( something ));
     }
 
     function not_in_array ( arr, element ) {
@@ -147,7 +131,7 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
                 }
             }
         }
-        return copy_of( New_Obj );
+        return JSON.clone( New_Obj );
     }
 
     function updatePreset ( oldPreset, ignoreKeys ) {
@@ -155,14 +139,14 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
         if(! ignoreKeys instanceof Array) {
             throw "The function updatePreset expects ignoreKeys to be instance of Array."
         }
-        if( oldPreset == undefined ) {
-        	return Template.getInstance();
+        if( oldPreset === undefined ) {
+            return presetJaw.getTemplate( true );
         }
         if(! oldPreset instanceof Object) {
-        	throw "The function updatePreset expects Preset to be instance of Object."
+            throw "The function updatePreset expects Preset to be instance of Object."
         }
         // Create a copy of the standard preset
-        var newPreset  = Template.getInstance();
+        var newPreset = presetJaw.getTemplate( true );
         return updateObj( oldPreset, newPreset, ignoreKeys );
     }
 
@@ -175,12 +159,13 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
         // And will be attached to any preset
         var PresetController = this;
         // Create a fresh template
-        var _Preset = Template.getInstance();
+        var _Preset = new jaw( Schema );
 
         var temporaryState = false;
 
         var _hasProp = function( propName ) {
-            if( _Preset.hasOwnProperty( propName ) ){
+            var Preset = _Preset.get();
+            if( Preset.hasOwnProperty( propName ) ){
                 return true;
             } else {
                 alert("UiPreset does not have property " + propName);
@@ -199,34 +184,34 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
             return temporaryState;
         }
 
-        PresetController.getTemplate = function() {
-            return Template.getInstance();
+        PresetController.getTemplate = function( allProperties ) {
+            // allProperties = undefined = false
+            return presetJaw.getTemplate( allProperties );
         }
 
         PresetController.get = function() {
-            return copy_of( _Preset );
+            return _Preset.get();
         }
 
         PresetController.load = function( Preset ) {
-            _Preset = updatePreset( Preset );
-            return _Preset;
+            _Preset.wrap( updatePreset( Preset ) );
+            if(_Preset.errors().length > 0) {
+                alert("Could not load preset.\n" + JSON.stringify(_Preset.errors()) );
+            }
+
+            return _Preset.get();
         }
         
         // Get and set preset properties
         PresetController.getProp = function( propName ) {
-            var prop = String(propName);
-            if( _hasProp( prop ) ) {
-                return copy_of( _Preset[ prop ] );
-            }
-            alert("Could not get preset property.\nProperty " + prop + " does not exist.");
-            return undefined;
+            return _Preset.get( propName );
         }
 
         PresetController.setProp = function( propName, val ) {
             var prop = String(propName);
             if( _hasProp( prop ) ) {
-                _Preset[ prop ] = val;
-                return copy_of( _Preset[ prop ] );
+                _Preset.set(prop, val);
+                return JSON.clone( _Preset.get(prop) );
             }
             alert("Could not set preset property.\nProperty " + prop + " does not exist.");
             return undefined;
@@ -321,16 +306,16 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
         }
         
         PresetsController.getTemplate = function() {
-            return Template.getInstance();
+            return presetJaw.getTemplate( true );
         }
 
         PresetsController.getByKey = function ( key, val ) {
-            // Sample usage: Jax.Presets.getByKey('id',3);
+            // Sample usage: Jaxon.Presets.getByKey('id',3);
             // Please note that this function returns the first
             // preset it can find
             var len = _Presets.length;
             for (var i = len-1; i >= 0; i--) {
-                if (_Presets[i].getProp(key) == val) {
+                if (_Presets[i].getProp(key) === val) {
                    return _Presets[i].get();
                 }
             }
@@ -338,7 +323,7 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
         }
 
         PresetsController.getIndex = function ( key, val ) {
-            // Sample usage: Jax.Presets.getIndex('name','this');
+            // Sample usage: Jaxon.Presets.getIndex('name','this');
             // returns array with matches
             var matches = new Array();
             var len = _Presets.length;
@@ -351,7 +336,7 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
         }
 
         PresetsController.getByIndex = function ( position ) {
-            // Sample usage: Jax.getPresetByIndex( 3 );
+            // Sample usage: Jaxon.getPresetByIndex( 3 );
             var len = _Presets.length;
             if( outOfRange( position, len ) ) {
                 alert("Preset Manager\nThere is no preset at index " + position);
@@ -362,7 +347,7 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
         }
 
         PresetsController.getPropList = function ( key ) {
-            if( !Jax.UiPreset.get().hasOwnProperty( key ) ) {
+            if( !Jaxon.UiPreset.get().hasOwnProperty( key ) ) {
                 alert("Preset Manager\nCan't create propertylist with key " + key);
                 return [];
             }
@@ -463,13 +448,13 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
         }
 
         PresetsController.removeWhere = function ( key, val ) {
-            // Sample usage: Jax.Presets.removeWhere('id',3);
+            // Sample usage: Jaxon.Presets.removeWhere('id',3);
             // This function removes any preset that contains key - val match
             // It returns true if any presets have been removed
             var success = false;
             var len = _Presets.length;
             for (var i = len-1; i >= 0; i--) {
-                if (_Presets[i].getProp(key) == val) {
+                if (_Presets[i].getProp(key) === val) {
                     _Presets.splice( i, 1 );
                     success = true;
                 }
@@ -567,7 +552,7 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
 
         function createDropDownList(){
             // Check listKey and load dropDown content
-            presetDropList = Jax.Presets.getPropList( listKey );
+            presetDropList = Jaxon.Presets.getPropList( listKey );
             // Add new (clear) preset to dropdown list
             presetDropList.unshift( newPresetName );
         }
@@ -583,13 +568,13 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
 
         WidgetCreator.activateLastUsed = function () {
             // This function resets the dropdown to last (Last Used)
-            presetsDrop.selection = Jax.Presets.getIndex( listKey, lastUsedPresetName )[0]+1;
+            presetsDrop.selection = Jaxon.Presets.getIndex( listKey, lastUsedPresetName )[0]+1;
             presetBut.text = ButtonText.save;
             return createMsg ( true, "Done" );
         }
 
         WidgetCreator.saveUiPreset = function () {
-            Jax.UiPreset.load( DataPort.getData() );
+            Jaxon.UiPreset.load( DataPort.getData() );
             return createMsg ( true, "Done" );
         }
 
@@ -599,7 +584,7 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
             // Process Options
             if(options && options.hasOwnProperty('updateProps')) {
                 for ( var i = 0; i < options.updateProps.length; i++ ) {
-                    Jax.UiPreset.setProp( options.updateProps[i].key, options.updateProps[i].value );
+                    Jaxon.UiPreset.setProp( options.updateProps[i].key, options.updateProps[i].value );
                 }
             }
         
@@ -608,8 +593,8 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
                 position = parseInt(options.position);
             }
 
-            Jax.UiPreset.save( position );
-            Jax.Presets.saveToDisk();
+            Jaxon.UiPreset.save( position );
+            Jaxon.Presets.saveToDisk();
             
             return createMsg ( true, "Done" );
         }
@@ -617,28 +602,31 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
         WidgetCreator.overwritePreset = function( key, val, options ) {
             // Save SUI data
             WidgetCreator.saveUiPreset();
-            Jax.UiPreset.setProp( key, val );
+
+            Jaxon.UiPreset.setProp( key, val );
 
             // Process Options
             var index = -1;
             if(options && options.hasOwnProperty('position')) {
                 index = parseInt(options.position);
             } else {
-                index = Jax.Presets.getIndex( key, val );
+                index = Jaxon.Presets.getIndex( key, val );
             }
 
-            Jax.Presets.addUnique( Jax.UiPreset.get(), key, {position: index, silently: true} );
-            Jax.Presets.saveToDisk();
+            Jaxon.Presets.addUnique( Jaxon.UiPreset.get(), key, {position: index, silently: true} );
+            Jaxon.Presets.saveToDisk();
             return createMsg ( true, "Done" );
         }
 
         WidgetCreator.saveLastUsed = function() {
             try {
+                var originalName = Jaxon.UiPreset.get()[listKey];
                 WidgetCreator.overwritePreset( listKey, lastUsedPresetName, {position: -1} );
+                Jaxon.UiPreset.setProp( listKey, originalName );
             } catch ( err ) {
                 alert(err)
             }
-            return Jax.UiPreset.get();
+            return Jaxon.UiPreset.get();
         }
 
         WidgetCreator.reset = function() {
@@ -647,7 +635,7 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
 
         WidgetCreator.loadIndex = function( i ) {
             // Load data in UiPreset
-            Jax.UiPreset.loadIndex( i );
+            Jaxon.UiPreset.loadIndex( i );
             // Update SUI
             DataPort.renderUiPreset();
             presetsDrop.selection = getDropDownIndex( i+1, presetDropList.length );
@@ -662,7 +650,7 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
                 return createMsg( false, "Could not establish data port.");
             }
             DataPort.renderUiPreset = function () {
-                Port.renderData( Jax.UiPreset.get() );
+                Port.renderData( Jaxon.UiPreset.get() );
             }
             DataPort.getData = Port.getData;
 
@@ -706,9 +694,9 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
                 if(updateUI) {
                     // Load data in UiPreset
                     if(this.selection.index == 0) {
-                        Jax.UiPreset.reset();
+                        Jaxon.UiPreset.reset();
                     } else {
-                        Jax.UiPreset.loadIndex( this.selection.index-1 );
+                        Jaxon.UiPreset.loadIndex( this.selection.index-1 );
                     }
                     DataPort.renderUiPreset();
                     // Update button
@@ -756,9 +744,9 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
                         // Recurse
                         return _addUiPresetToPresets();
                     }
-                    Jax.UiPreset.setProp( listKey, presetName );
+                    Jaxon.UiPreset.setProp( listKey, presetName );
                     // Add preset to end
-                    Jax.Presets.addUnique( Jax.UiPreset.get(), listKey, {position:-1} );
+                    Jaxon.Presets.addUnique( Jaxon.UiPreset.get(), listKey, {position:-1} );
                     WidgetCreator.reset();
                     presetsDrop.selection = presetsDrop.items.length-1;
                 }
@@ -766,13 +754,13 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
 
             presetBut.onClick = function () { 
                 if( this.text == ButtonText.clear ) {
-                    Jax.Presets.remove( presetsDrop.selection.index - 1 );
+                    Jaxon.Presets.remove( presetsDrop.selection.index - 1 );
                     WidgetCreator.reset();
                 } else { // Save preset
-                    Jax.UiPreset.load( DataPort.getData() );
+                    Jaxon.UiPreset.load( DataPort.getData() );
                     _addUiPresetToPresets();
                 }
-                Jax.Presets.saveToDisk();
+                Jaxon.Presets.saveToDisk();
             }
             
             // Load selected dropdown
@@ -787,50 +775,68 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
 
     } // End Widget
 
-    // current preset (The presets we manipulate)
-    // We need to buils these
-    Jax.Presets  = new presetsController( standardPresets );
-    
-    // create a data controller for UiPreset
-    Jax.UiPreset = new presetController( TemplatePreset );
-    
-    // create widget builder
-    Jax.Widget = new widgetCreator();
 
-    // Extend presetController UiPreset
-    Jax.UiPreset.save = function( position ) {
-        // position or index, negative numbers are calculated from the back -1 == last
-        return Jax.Presets.add( Jax.UiPreset.get(), {position: position} );
+    //-------------------------------------------------
+    // S T A R T  P U B L I C   A P I
+    //-------------------------------------------------
+
+    Jaxon.getPresetsFilePath = function () {
+        return filePath;
     }
 
-    Jax.UiPreset.loadIndex = function ( index ) {
-        var len = Jax.Presets.get().length;
+    Jaxon.errors = function() {
+        // Always return an array of errors
+        if(Array.isArray(errors)) {
+            return errors;
+        } else {
+            return [errors];
+        }
+    }
+
+    // current preset (The presets we manipulate)
+    // We need to buils these
+    Jaxon.Presets  = new presetsController( standardPresets );
+    
+    // create a data controller for UiPreset
+    Jaxon.UiPreset = new presetController( presetJaw.getTemplate( true ) );
+    
+    // create widget builder
+    Jaxon.Widget = new widgetCreator();
+
+    // Extend presetController UiPreset
+    Jaxon.UiPreset.save = function( position ) {
+        // position or index, negative numbers are calculated from the back -1 == last
+        return Jaxon.Presets.add( Jaxon.UiPreset.get(), {position: position} );
+    }
+
+    Jaxon.UiPreset.loadIndex = function ( index ) {
+        var len = Jaxon.Presets.get().length;
         var i = Math.abs(parseInt(index));
         if(i > len-1) {
             alert("Preset Manager\nLoad index is not a valid preset index: " + index);
             return createMsg ( false, "Not a valid preset index." );
         }
-        Jax.UiPreset.load( Jax.Presets.getByIndex( i ) );
+        Jaxon.UiPreset.load( Jaxon.Presets.getByIndex( i ) );
         return createMsg ( true, "Done" );
     }
 
-    Jax.UiPreset.reset = function ( ) {
-        Jax.UiPreset.load( Template.getInstance() );
+    Jaxon.UiPreset.reset = function ( ) {
+        Jaxon.UiPreset.load( presetJaw.getTemplate( true ) );
     }
 
-    Jax.reset = function( hard ) {
+    Jaxon.reset = function( hard ) {
         var hard = (hard == true);
         if( hard ) {
-            Jax.Presets.reset();
-            Jax.Presets.saveToDisk();
+            Jaxon.Presets.reset();
+            Jaxon.Presets.saveToDisk();
         } else {
-            Jax.Presets.loadFromDisk();
+            Jaxon.Presets.loadFromDisk();
         }
-        Jax.UiPreset.reset();
-        Jax.Widget.reset();
+        Jaxon.UiPreset.reset();
+        Jaxon.Widget.reset();
     }
 
-    Jax.format = function ( preset ) {
+    Jaxon.format = function ( preset ) {
         return updatePreset ( preset );
     }
 
@@ -842,21 +848,11 @@ var presetManager = function( fileName, standardPresets, TemplatePreset ) {
     //---------    
     // Save the standard presets if not allready exist
     if(!fileExist( filePath ) ){
-        if( ! Jax.Presets.saveToDisk() ){
-            throw("Failed to start Jax\nUnable to save presets to " + filePath);
+        if( ! Jaxon.Presets.saveToDisk() ){
+            throw("Failed to start Jaxon\nUnable to save presets to " + filePath);
         }
     }
     // Load the presets
-    Jax.Presets.loadFromDisk();
+    Jaxon.Presets.loadFromDisk();
 };
-
-//----------------------------------------------------------------------------------
-/*
- * JSON - from: https://github.com/douglascrockford/JSON-js
- */
-if(typeof JSON!=='object'){JSON={};}(function(){'use strict';function f(n){return n<10?'0'+n:n;}function this_value(){return this.valueOf();}if(typeof Date.prototype.toJSON!=='function'){Date.prototype.toJSON=function(){return isFinite(this.valueOf())?this.getUTCFullYear()+'-'+f(this.getUTCMonth()+1)+'-'+f(this.getUTCDate())+'T'+f(this.getUTCHours())+':'+f(this.getUTCMinutes())+':'+f(this.getUTCSeconds())+'Z':null;};Boolean.prototype.toJSON=this_value;Number.prototype.toJSON=this_value;String.prototype.toJSON=this_value;}var cx,escapable,gap,indent,meta,rep;function quote(string){escapable.lastIndex=0;return escapable.test(string)?'"'+string.replace(escapable,function(a){var c=meta[a];return typeof c==='string'?c:'\\u'+('0000'+a.charCodeAt(0).toString(16)).slice(-4);})+'"':'"'+string+'"';}function str(key,holder){var i,k,v,length,mind=gap,partial,value=holder[key];if(value&&typeof value==='object'&&typeof value.toJSON==='function'){value=value.toJSON(key);}if(typeof rep==='function'){value=rep.call(holder,key,value);}switch(typeof value){case'string':return quote(value);case'number':return isFinite(value)?String(value):'null';case'boolean':case'null':return String(value);case'object':if(!value){return'null';}gap+=indent;partial=[];if(Object.prototype.toString.apply(value)==='[object Array]'){length=value.length;for(i=0;i<length;i+=1){partial[i]=str(i,value)||'null';}v=partial.length===0?'[]':gap?'[\n'+gap+partial.join(',\n'+gap)+'\n'+mind+']':'['+partial.join(',')+']';gap=mind;return v;}if(rep&&typeof rep==='object'){length=rep.length;for(i=0;i<length;i+=1){if(typeof rep[i]==='string'){k=rep[i];v=str(k,value);if(v){partial.push(quote(k)+(gap?': ':':')+v);}}}}else{for(k in value){if(Object.prototype.hasOwnProperty.call(value,k)){v=str(k,value);if(v){partial.push(quote(k)+(gap?': ':':')+v);}}}}v=partial.length===0?'{}':gap?'{\n'+gap+partial.join(',\n'+gap)+'\n'+mind+'}':'{'+partial.join(',')+'}';gap=mind;return v;}}if(typeof JSON.stringify!=='function'){escapable=/[\\\"\u0000-\u001f\u007f-\u009f\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g;meta={'\b':'\\b','\t':'\\t','\n':'\\n','\f':'\\f','\r':'\\r','"':'\\"','\\':'\\\\'};JSON.stringify=function(value,replacer,space){var i;gap='';indent='';if(typeof space==='number'){for(i=0;i<space;i+=1){indent+=' ';}}else if(typeof space==='string'){indent=space;}rep=replacer;if(replacer&&typeof replacer!=='function'&&(typeof replacer!=='object'||typeof replacer.length!=='number')){throw new Error('JSON.stringify');}return str('',{'':value});};}if(typeof JSON.parse!=='function'){cx=/[\u0000\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g;JSON.parse=function(text,reviver){var j;function walk(holder,key){var k,v,value=holder[key];if(value&&typeof value==='object'){for(k in value){if(Object.prototype.hasOwnProperty.call(value,k)){v=walk(value,k);if(v!==undefined){value[k]=v;}else{delete value[k];}}}}return reviver.call(holder,key,value);}text=String(text);cx.lastIndex=0;if(cx.test(text)){text=text.replace(cx,function(a){return'\\u'+('0000'+a.charCodeAt(0).toString(16)).slice(-4);});}if(/^[\],:{}\s]*$/.test(text.replace(/\\(?:["\\\/bfnrt]|u[0-9a-fA-F]{4})/g,'@').replace(/"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g,']').replace(/(?:^|:|,)(?:\s*\[)+/g,''))){j=eval('('+text+')');return typeof reviver==='function'?walk({'':j},''):j;}throw new SyntaxError('JSON.parse');};}}());
-
-// END presetManager.js
-//----------------------------------------------------------------------------------
-
 

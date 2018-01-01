@@ -1,19 +1,19 @@
-Jax 
-===
+Jaxon 
+=====
 
-Jax is a preset manager for `ExtendScript`. This manager makes it easy to load and save presets to the user data-folder in JSON format.
+Jaxon is an ExtendScript Preset Manager that uses  [JSON-schemas](http://json-schema.org/) to keep presets validated. It also makes it easy to load and save presets to the user data-folder in JSON format.
 
 
 Usage
 -----
 
-1. Include `jax.js` into your script by using the preprocessor directive:
-    
-    `#include jax.js`
+1. Include `jaxon.jsxinc` into your script using the preprocessor directive:
+   
+    `#include jaxon.jsxinc`
 
-2. Create a new Preset Manager with your presets:
+2. Create a new Preset Manager with your JSON-Schema:
 
-    `var Jax = new presetManager( "file_name.json", presets );`
+    `var Jaxon = new presetManager( "file_name.json", Schema);`
 
 3. Create `get()` and `set()` functions that move data in and out of your interface and attach them to your `DataPort`
 
@@ -21,21 +21,30 @@ Usage
 
 4. Now attach the widget to your interface:
 
-    `Jax.Widget.attachTo( Window, KeyID, myDataPort );`
+    `Jaxon.Widget.attachTo( Window, KeyID, myDataPort );`
 
-Review the [Wiki](https://github.com/GitBruno/Jax/wiki/Home) for API overview. Also look at [`sample_sui.jsx`](https://github.com/GitBruno/Jax/blob/master/sample_sui.jsx) for a complete setup.
 
+Resources
+---------
+- [Wiki](https://github.com/GitBruno/Jaxon/wiki/Home): API overview
+- [JSONSchema](https://jsonschema.net): Quick schema generation
+- [Sample](https://github.com/GitBruno/Jaxon/blob/master/sample_sui.jsx): Implementation sample
 
 Dependencies
 ------------
-ExtendScript does not include a JSON implementation natively so this manager will load it for you. 
-ESPM will not override any existing JSON object so you can roll your own too.
+All dependencies and polyfills are included. You can exclude them by running `make dependent` this will exclude the following dependencies:
+
+- [Jaw (dependent)](https://github.com/GitBruno/Jaw)
+- [JSON Schema Instantiator](https://github.com/tomarad/JSON-Schema-Instantiator)
+- [JSON Schema validator](https://github.com/iclanzan/jassi)
+- [Object Manager](https://github.com/dimik/object-manager)
+- [ES Polyfill](https://github.com/GitBruno/Jaw/blob/master/src/es-polyfill.js)
 
 
 Requests
 --------
 
-Bugs and feature requests are tracked with [the github issue tracker](https://github.com/GitBruno/ESPM/issues).  
+Bugs and feature requests are tracked with [the github issue tracker](https://github.com/GitBruno/Jaxon/issues). Pull requests are welcome! 
 
 
 Licence
