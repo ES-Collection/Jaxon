@@ -1,5 +1,5 @@
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// Start ExtendScript Poly fills v1.0
+// Start ExtendScript Poly fills v1.1
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // ARRAY
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -137,8 +137,8 @@ if (!Object.keys) {
 //   1. Make it run in ExtendScript
 //   2. Add JSON.clone() function
 //   3. Add JSON.saveFile() function
-//   3. Add JSON.openFile() function
-//   4. Add JSON.ask2Safe() function
+//   4. Add JSON.openFile() function
+//   5. Add JSON.ask2Safe() function
 
 // Create a JSON object only if one does not already exist. We create the
 // methods in a closure to avoid creating global variables.
@@ -554,7 +554,7 @@ if (typeof JSON !== "object") {
             if(save){
                 JSON.saveFile(File, Obj);
             }
-            return Obj;
+            return save;
         }
     };
 

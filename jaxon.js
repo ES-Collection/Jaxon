@@ -6,8 +6,7 @@
 
     Bruno Herfst 2017
 
-    Version 2
-    : Using Jaw to validate settings
+    Version 2.1
 
     MIT license (MIT)
     

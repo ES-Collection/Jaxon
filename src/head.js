@@ -6,7 +6,7 @@
 
     Bruno Herfst 2017
 
-    Version 2.0
+    Version 2.1
 
     MIT license (MIT)
     
