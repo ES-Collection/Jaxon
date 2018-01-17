@@ -536,6 +536,11 @@ var presetManager = function( fileName, Schema, standardPresets ) {
         var ButtonText         = {save: "Save Preset", clear: "Clear Preset"};
         var newName            = "New Preset";
         var lastUsedName       = "Last Used";
+
+        // Keep track of which preset this preset is based on
+        // This makes it easy to over-ride an existing preset
+        var basedOnPresetName = newName;
+
         var newPresetName      = "";
         var lastUsedPresetName = "";
 
@@ -666,6 +671,7 @@ var presetManager = function( fileName, Schema, standardPresets ) {
                 return createMsg( false, "Could not establish data port.");
             }
             DataPort.renderUiPreset = function () {
+                basedOnPresetName = String( Jaxon.UiPreset.getProp(listKey) );
                 Port.renderData( Jaxon.UiPreset.get() );
             }
             DataPort.getData = Port.getData;
@@ -749,7 +755,7 @@ var presetManager = function( fileName, Schema, standardPresets ) {
             presetBut = SUI_Group.add('button', undefined, ButtonText.save);
 
             function _addUiPresetToPresets( defaultName ) {
-                var defaultName = defaultName || "";
+                var defaultName = defaultName || basedOnPresetName;
                     defaultName = String( defaultName );
 
                 var presetName = prompt("Name: ", defaultName, "Save Preset");
