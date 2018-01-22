@@ -6,7 +6,7 @@
 
     Bruno Herfst 2017
 
-    Version 2.2
+    Version 2.3
 
     MIT license (MIT)
     
@@ -532,10 +532,25 @@ var presetManager = function( fileName, Schema, standardPresets ) {
         }
 
         // Any preset that starts with a locking character can't be deleted by the user
-        var lockChar           = ['[',']'];
-        var ButtonText         = {save: "Save Preset", clear: "Clear Preset"};
-        var newName            = "New Preset";
-        var lastUsedName       = "Last Used";
+        var lockChars = ['[',']'];
+        WidgetCreator.getLockChar = function () {
+            return lockChars;
+        }
+
+        var ButtonText = {save: "Save Preset", clear: "Clear Preset"};
+        WidgetCreator.getButtonText = function () {
+            return ButtonText;
+        }
+
+        var newName = "New Preset";
+        WidgetCreator.getNewPresetName = function () {
+            return newName;
+        }
+
+        var lastUsedName = "Last Used";
+        WidgetCreator.getLastUsedPresetName = function () {
+            return lastUsedName;
+        }
 
         // Keep track of which preset this preset is based on
         // This makes it easy to over-ride an existing preset
@@ -545,8 +560,8 @@ var presetManager = function( fileName, Schema, standardPresets ) {
         var lastUsedPresetName = "";
 
         function updatePresetNames() {
-            newPresetName      = String(lockChar[0] + " " + newName      + " " + lockChar[1]);
-            lastUsedPresetName = String(lockChar[0] + " " + lastUsedName + " " + lockChar[1]);
+            newPresetName      = String(lockChars[0] + " " + newName      + " " + lockChars[1]);
+            lastUsedPresetName = String(lockChars[0] + " " + lastUsedName + " " + lockChars[1]);
         }
 
         // This makes it possible to update UI everytime UiPreset is changed
@@ -680,10 +695,10 @@ var presetManager = function( fileName, Schema, standardPresets ) {
             if(Options && Options.hasOwnProperty('onloadIndex')) {
                 onloadIndex = parseInt(Options.onloadIndex);
             }
-            if(Options && Options.hasOwnProperty('lockChar')) {
+            if(Options && Options.hasOwnProperty('lockChars')) {
                 if(lockChars.length == 2) {
-                    lockChar[0] = String(Options.lockChar[0]);
-                    lockChar[1] = String(Options.lockChar[1]);
+                    lockChars[0] = String(Options.lockChars[0]);
+                    lockChars[1] = String(Options.lockChars[1]);
                 }
             }
             if(Options && Options.hasOwnProperty('newPresetName')) {
@@ -722,7 +737,7 @@ var presetManager = function( fileName, Schema, standardPresets ) {
                     }
                     DataPort.renderUiPreset();
                     // Update button
-                    if( this.selection.text.indexOf(lockChar[0]) == 0 ){
+                    if( this.selection.text.indexOf(lockChars[0]) == 0 ){
                         presetBut.text = ButtonText.save;
                     } else {
                         presetBut.text = ButtonText.clear;
@@ -761,8 +776,8 @@ var presetManager = function( fileName, Schema, standardPresets ) {
                 var presetName = prompt("Name: ", defaultName, "Save Preset");
 
                 if ( presetName != null ) {
-                    if ( presetName.indexOf(lockChar[0]) == 0 ) {
-                        alert( "You can't start a preset name with: " + lockChar[0] );
+                    if ( presetName.indexOf(lockChars[0]) == 0 ) {
+                        alert( "You can't start a preset name with: " + lockChars[0] );
                         // Recurse
                         return _addUiPresetToPresets();
                     }
