@@ -533,7 +533,7 @@ var presetManager = function( fileName, Schema, standardPresets ) {
 
         // Any preset that starts with a locking character can't be deleted by the user
         var lockChars = ['[',']'];
-        WidgetCreator.getLockChar = function () {
+        WidgetCreator.getLockChars = function () {
             return lockChars;
         }
 
