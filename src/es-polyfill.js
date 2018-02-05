@@ -1,5 +1,6 @@
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// Start ExtendScript Poly fills v1.1
+// Start ExtendScript Poly fills v1.2
+// https://github.com/GitBruno/Jaxon/blob/master/src/es-polyfill.js
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // ARRAY
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
