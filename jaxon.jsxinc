@@ -15,7 +15,8 @@
 */
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// Start ExtendScript Poly fills v1.1
+// Start ExtendScript Poly fills v1.2
+// https://github.com/GitBruno/Jaxon/blob/master/src/es-polyfill.js
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // ARRAY
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -578,7 +579,13 @@ if (typeof JSON !== "object") {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // End ExtendScript Poly fills
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+/*
+    Jaw v1.2
 
+    Bruno Herfst, 2017
+    https://github.com/GitBruno/Jaw
+
+*/
 /*
 
   JSON Schema Instantiator
@@ -1310,8 +1317,23 @@ var ObjectManager = function (ctx, delim) {
 
 
 var jaw = function( Schema, instance ) {
+
     // ref to self
     var Jaw = this;
+
+    function updateReference() {
+        // With brute force :)
+        if(typeof instance === 'object') {
+            var fromObj = Jaw.get();
+            Object.keys(instance).forEach(function(key) {
+                delete instance[key];
+            });
+            Object.keys(fromObj).forEach(function(key) {
+                instance[key] = fromObj[key];
+            });
+        }
+    }
+
     var manager = new ObjectManager({});
     var _Schema = {};
 
@@ -1324,6 +1346,14 @@ var jaw = function( Schema, instance ) {
     };
 
     var errors = [];
+
+    var errHandler = function(err, obj) {
+        //err: null or string with error description "TypeError: cannot set property 'undefined' of number"
+        //obj: updated object { a : { b : [{ c : 10 }] } }
+        if( typeof err === "string") {
+            errors.push(resultErr);
+        }
+    };
 
     function setSchema( Schema ){
         // Validate given schema
@@ -1355,7 +1385,7 @@ var jaw = function( Schema, instance ) {
             errors = Validator.validate( newObj, Jaw.getSchema() );
             if( errors.length === 0 ) {
                 manager = new ObjectManager(newObj);
-                _isValid.managed = true;
+                validateManager();
             }
         }
         return Jaw;
@@ -1376,6 +1406,8 @@ var jaw = function( Schema, instance ) {
       if( result.length > 0 ) {
         errors.push(result);
         _isValid.managed = false;
+      } else {
+        updateReference();
       }
     };
 
@@ -1431,18 +1463,152 @@ var jaw = function( Schema, instance ) {
         
         var err = Validator.validate( check.find(), Jaw.getSchema() );
 
-        var errHandler = function(err, obj) {
-            //err: null or string with error description "TypeError: cannot set property 'undefined' of number"
-            //obj: updated object { a : { b : [{ c : 10 }] } }
-            if( typeof err === "string") {
-                errors.push(resultErr);
-            }
-        }
-
         if ( err.length > 0 ) {
           errors.push( err );
         } else {
           manager.update( path, to, errHandler);
+          validateManager();
+        }
+        return Jaw;
+    };
+
+    // Array tools
+    function unshiftPush( path, unshiftPush, args ) {
+        // Param unshiftPush: Boolean true for unshift false for push
+        var check = new ObjectManager( JSON.clone( Jaw.get() ) );
+        var arr = check.find(path);
+
+        if( arr === undefined || arr === false ) {
+            arr = args; // Add new array  
+            check.update(path, arr);
+        } else if ( Array.isArray(arr) ) {
+            if( unshiftPush ) {
+                Array.prototype.unshift.apply( arr, args );
+            } else {
+                Array.prototype.push.apply( arr, args );
+            }
+            check.update(path, arr);
+        } else {
+            errors.push("Jaw.pushShift: path does not result in array.");
+            return Jaw;
+        }
+
+        var err = Validator.validate( check.find(), Jaw.getSchema() );
+
+        if ( err.length > 0 ) {
+          errors.push( err );
+        } else {
+          manager.update( path, arr, errHandler);
+          validateManager();
+        }
+        return Jaw;
+    }
+
+    function shiftPop( path, shiftPop ) {
+        // Returns element or undefined
+        var check = new ObjectManager( JSON.clone( Jaw.get() ) );
+        var arr = check.find(path);
+
+        var result = undefined;
+
+        if( arr === undefined || arr === false ) {
+            // There is no array at path
+            return result; // Same as running pop() or shift() on empty array
+        } else if ( Array.isArray(arr) ) {
+            if( shiftPop ) {
+                result = arr.shift();
+            } else {
+                result = arr.pop();
+            }
+        } else {
+            errors.push("Jaw.pop: path does not result in array.");
+        }
+
+        var err = Validator.validate( check.find(), Jaw.getSchema() );
+
+        if ( err.length > 0 ) {
+          errors.push( err );
+          return result; 
+        } else {
+          manager.update( path, arr, errHandler);
+          validateManager();
+        }
+        return result;
+    };
+
+    Jaw.push = function( path /* element, element, etc */ ) {
+        var args = Array.prototype.slice.call(arguments, Jaw.push.length);
+        return unshiftPush( path, false, args );
+    };
+
+    Jaw.pop = function ( path ) {
+        return shiftPop( path, false );
+    }
+
+    Jaw.unshift = function( path /* element, element, etc */ ) {
+        var args = Array.prototype.slice.call(arguments, Jaw.unshift.length);
+        return unshiftPush( path, true, args );
+    };
+
+    Jaw.shift = function ( path ) {
+        return shiftPop( path, true );
+    };
+
+    Jaw.splice = function( path, index, del /* element, element, etc */ ) {
+        var args = Array.prototype.slice.call(arguments, Jaw.splice.length);
+
+        var check = new ObjectManager( JSON.clone( Jaw.get() ) );
+        var arr = check.find(path);
+
+        if( arr === undefined || arr === false ) {
+            arr = new Array(index+del);
+        }
+
+        if ( Array.isArray(arr) ) {
+            if( (index+del) <= arr.length ) {
+                Array.prototype.splice.apply(arr, [index,del].concat(args) );
+                check.update(path, arr);
+            } else {
+                errors.push("Jaw.splice: index out of range.");
+                return Jaw;
+            }
+        } else {
+            errors.push("Jaw.splice: path does not result in array.");
+            return Jaw;
+        }
+
+        var err = Validator.validate( check.find(), Jaw.getSchema() );
+
+        if ( err.length > 0 ) {
+          errors.push( err );
+        } else {
+          manager.update( path, arr, errHandler);
+          validateManager();
+        }
+        return Jaw;
+    };
+
+    function deleteProp( obj, path ) {
+        var route = path.split(".");
+        while (route.length-1 && (obj = obj[route.shift()]));
+        delete obj[route.shift()];
+    }
+
+    Jaw.delete = function ( path ) {
+        var clone = JSON.clone( Jaw.get() );
+        deleteProp( clone, path );
+        
+        // If any prop is delted that is required add it again
+        // This will revert to default value
+        copyKeys(Jaw.getTemplate( false ), clone);
+        
+        var check = new ObjectManager( clone );
+        var err = Validator.validate( check.find(), Jaw.getSchema() );
+
+        if ( err.length > 0 ) {
+          errors.push( err );
+        } else {
+          Jaw.wrap( clone );
           validateManager();
         }
         return Jaw;
@@ -1457,14 +1623,17 @@ var jaw = function( Schema, instance ) {
         manager = new ObjectManager( Jaw.getTemplate( false ) );
     };
 
-    if(Jaw.isValid() && instance) {
-        if(typeof instance !== 'object') {
+    if(Jaw.isValid() && (typeof instance !== 'undefined') ) {
+        if(typeof instance === 'boolean') {
+            Jaw.wrap(Jaw.getTemplate( instance ) );
+        } else if(typeof instance !== 'object') {
             _valid.managed = false;
             errors.unshift("Initialisation Error: Can't get Jaw arround non-object");
         } else {
             Jaw.wrap(instance);
         }
     };
+
 };
 /* -------------------------------------------------------------------------------
     

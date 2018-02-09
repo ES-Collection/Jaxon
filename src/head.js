@@ -15,8 +15,5 @@
 */
 
 #include 'es-polyfill.js'
-#include 'json-initiator.js'
-#include 'json-validator.js'
-#include 'object-manager.js'
 #include 'jaw.js'
 #include 'preset-manager.js'
