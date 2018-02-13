@@ -1,5 +1,5 @@
 /*
-    Jaw v1.2
+    Jaw v1.2.1
 
     Bruno Herfst, 2017
     https://github.com/GitBruno/Jaw
@@ -810,16 +810,6 @@ var jaw = function( Schema, instance ) {
         return Jaw;
     };
 
-    function copyKeys(fromObj, toObj) {
-        if( (typeof fromObj !== 'object') ||
-            (typeof toObj   !== 'object') ) {
-            throw new userException('copyKeys needs to be given objects');
-        }
-        Object.keys(fromObj).forEach(function(key) {
-            toObj[key] = fromObj[key];
-        });
-    };
-
     function validateManager(){
       var result = Validator.validate( manager.find(), Jaw.getSchema() );  
       if( result.length > 0 ) {
@@ -833,6 +823,16 @@ var jaw = function( Schema, instance ) {
     //-----------------
     // Public funcions
     //-----------------
+    Jaw.copyKeys = function(fromObj, toObj) {
+        if( (typeof fromObj !== 'object') ||
+            (typeof toObj   !== 'object') ) {
+            throw new userException('Jaw.copyKeys(): Two objects expected.');
+        }
+        Object.keys(fromObj).forEach(function(key) {
+            toObj[key] = fromObj[key];
+        });
+    };
+
     Jaw.isValid = function() {
         return _isValid.all();
     };
@@ -849,7 +849,7 @@ var jaw = function( Schema, instance ) {
         var newObj = Instantiator.instantiate( Jaw.getSchema() );
         if(typeof newObj === 'object') {
             // Copy all keys from given object to new object
-            copyKeys(givenObj, newObj);
+            Jaw.copyKeys(givenObj, newObj);
         }
         setObj( newObj );
         return Jaw;
@@ -1019,7 +1019,7 @@ var jaw = function( Schema, instance ) {
         
         // If any prop is delted that is required add it again
         // This will revert to default value
-        copyKeys(Jaw.getTemplate( false ), clone);
+        Jaw.copyKeys(Jaw.getTemplate( false ), clone);
         
         var check = new ObjectManager( clone );
         var err = Validator.validate( check.find(), Jaw.getSchema() );
