@@ -1,7 +1,7 @@
 /*
-    Jaw v1.2.1
+    Jaw v1.2.3
 
-    Bruno Herfst, 2017
+    Bruno Herfst, 2017 - 2018
     https://github.com/GitBruno/Jaw
 
 */
@@ -740,20 +740,18 @@ var jaw = function( Schema, instance ) {
     // ref to self
     var Jaw = this;
 
-    function updateReference() {
-        // With brute force :)
-        if(typeof instance === 'object') {
-            var fromObj = Jaw.get();
-            Object.keys(instance).forEach(function(key) {
-                delete instance[key];
-            });
-            Object.keys(fromObj).forEach(function(key) {
-                instance[key] = fromObj[key];
-            });
-        }
-    }
+    Jaw.objRef = [new Object()]; // Object Reference
+    
+    Jaw.getObjRef = function() {
+        return Jaw.objRef[0];
+    };
 
-    var manager = new ObjectManager({});
+    Jaw.setObjRef = function( ref ) {
+        // We save original object reference in array
+        Jaw.objRef = [ref];
+    };
+
+    var manager = new ObjectManager( Jaw.getObjRef() );
     var _Schema = {};
 
     var _isValid = {
@@ -764,34 +762,45 @@ var jaw = function( Schema, instance ) {
         }
     };
 
-    var errors = [];
+    var errStack = [];
 
     var errHandler = function(err, obj) {
         //err: null or string with error description "TypeError: cannot set property 'undefined' of number"
         //obj: updated object { a : { b : [{ c : 10 }] } }
         if( typeof err === "string") {
-            errors.push(resultErr);
+            errStack.unshift(err);
+        } else if( Array.isArray(err) ) {
+            errStack.concat(err);
         }
+    };
+
+    function pathNotOK( path ) {
+        if( typeof path === 'string' || typeof path === 'undefined') {
+            return false;
+        } else {
+            errStack.unshift( "Type of path should be string or undefined but was " + typeof path );
+            return true;
+        };
     };
 
     function setSchema( Schema ){
         // Validate given schema
         _Schema = JSON.clone( Schema );
         // Shema is object, let's make sure it has a type property as well
-        errors = Validator.validate( Jaw.getSchema(), {"type": "object","required": ["type"]} );
-        if( errors.length > 0 ) {
+        var result = Validator.validate( Jaw.getSchema(), {"type": "object","required": ["type"]} );
+        if( result.length > 0 ) {
             _isValid.schema = false;
-            errors.unshift("Schema not valid (Missing type property).");
+            errStack.unshift("Schema not valid (Missing type property).");
             return;
-        }
+        };
 
         // Validating against a fresh instance from schema should always work
         // If not, there is something wrong with the schema
-        errors = Validator.validate( Jaw.getTemplate( true ), Jaw.getSchema() );
-        if( errors.length > 0 ) {
-            errors.unshift("Schema not valid (Could not generate valid instance from shema).");
+        result = Validator.validate( Jaw.getTemplate( true ), Jaw.getSchema() );
+        if( result.length > 0 ) {
+            errStack.unshift("Schema not valid (Could not generate valid instance from shema).");
             _isValid.schema = false;
-        }
+        };
     };
 
     function userException(message) {
@@ -799,25 +808,12 @@ var jaw = function( Schema, instance ) {
         this.name = 'Error';
     };
 
-    function setObj( newObj ) {
-        if(_isValid.schema) {
-            errors = Validator.validate( newObj, Jaw.getSchema() );
-            if( errors.length === 0 ) {
-                manager = new ObjectManager(newObj);
-                validateManager();
-            }
-        }
-        return Jaw;
-    };
-
     function validateManager(){
-      var result = Validator.validate( manager.find(), Jaw.getSchema() );  
-      if( result.length > 0 ) {
-        errors.push(result);
-        _isValid.managed = false;
-      } else {
-        updateReference();
-      }
+        var result = Validator.validate( manager.find(), Jaw.getSchema() );  
+        if( result.length > 0 ) {
+            errStack.concat( result );
+            _isValid.managed = false;
+        }
     };
 
     //-----------------
@@ -826,32 +822,60 @@ var jaw = function( Schema, instance ) {
     Jaw.copyKeys = function(fromObj, toObj) {
         if( (typeof fromObj !== 'object') ||
             (typeof toObj   !== 'object') ) {
-            throw new userException('Jaw.copyKeys(): Two objects expected.');
-        }
+            throw new userException('Jaw.copyKeys(): Two objects expected but receieved ' + typeof fromObj + " and " + typeof toObj);
+        };
         Object.keys(fromObj).forEach(function(key) {
             toObj[key] = fromObj[key];
         });
+        return Jaw;
     };
 
     Jaw.isValid = function() {
+        Jaw.update();
         return _isValid.all();
     };
 
     Jaw.errors = function() {
-        if(Array.isArray(errors)) {
-            return errors;
-        } else {
-            return [errors];
-        }
+        Jaw.update();
+        if( Array.isArray(errStack) ) {
+            return errStack;
+        };
+
+        switch( typeof errStack ) {
+            case "undefined":
+                return [];
+            default:
+               return [ JSON.stringify(errStack) ];
+               break;
+        };
     };
 
-    Jaw.wrap = function( givenObj ) {
+    Jaw.wrap = function( inst ) {
+        if(typeof inst !== 'object') {
+            errStack.unshift("Wrapping Error: Can't get Jaw arround non-object");
+            return Jaw;
+        };
+
+        // Copy schema keys
         var newObj = Instantiator.instantiate( Jaw.getSchema() );
-        if(typeof newObj === 'object') {
-            // Copy all keys from given object to new object
-            Jaw.copyKeys(givenObj, newObj);
-        }
-        setObj( newObj );
+        if(typeof newObj !== 'object') {
+            errStack.unshift('Wrapping Error: Schema not valid');
+            return Jaw;
+        };
+
+        // Copy all keys from given object to new object
+        Jaw.copyKeys(inst, newObj);
+        var result = Validator.validate( newObj, Jaw.getSchema() );
+
+        if( result.length === 0 ) {
+            Jaw.copyKeys(newObj, inst);
+            Jaw.setObjRef( inst );
+            manager = new ObjectManager( Jaw.getObjRef() );
+            validateManager();
+        } else {
+            errStack.concat(result);
+            return Jaw;
+        };
         return Jaw;
     };
 
@@ -869,21 +893,33 @@ var jaw = function( Schema, instance ) {
         return JSON.clone(_Schema);
     };
 
-    Jaw.get = function( path ) {
+    Jaw._get = function( path ) {
         return manager.find( path );
     };
-    
+
+    Jaw.get = function( path ) {
+        if ( pathNotOK(path) ) { return Jaw; };
+        Jaw.update();
+        return Jaw._get( path );
+    };
+
+    Jaw.clone = function( path ) {
+        if ( pathNotOK(path) ) { return Jaw; };
+        Jaw.update();
+        return JSON.parse(JSON.stringify(Jaw._get( path )));
+    };
+
     Jaw.set = function( path, to ) {
-        var check = new ObjectManager( JSON.clone( Jaw.get() ) );
+        if ( pathNotOK(path) ) { return Jaw; };
+        Jaw.update();
+        var check = new ObjectManager( JSON.clone( Jaw._get() ) );
 
-        var result = check.update( path, to, function (resultErr) {
-          errors.push(resultErr);
-        });
+        var result = check.update( path, to, errHandler);
         
-        var err = Validator.validate( check.find(), Jaw.getSchema() );
+        var result = Validator.validate( check.find(), Jaw.getSchema() );
 
-        if ( err.length > 0 ) {
-          errors.push( err );
+        if ( result.length > 0 ) {
+          errStack.concat( result );
         } else {
           manager.update( path, to, errHandler);
           validateManager();
@@ -894,7 +930,7 @@ var jaw = function( Schema, instance ) {
     // Array tools
     function unshiftPush( path, unshiftPush, args ) {
         // Param unshiftPush: Boolean true for unshift false for push
-        var check = new ObjectManager( JSON.clone( Jaw.get() ) );
+        var check = new ObjectManager( JSON.clone( Jaw._get() ) );
         var arr = check.find(path);
 
         if( arr === undefined || arr === false ) {
@@ -908,24 +944,24 @@ var jaw = function( Schema, instance ) {
             }
             check.update(path, arr);
         } else {
-            errors.push("Jaw.pushShift: path does not result in array.");
+            errStack.unshift("Jaw.pushShift: path does not result in array.");
             return Jaw;
-        }
+        };
 
-        var err = Validator.validate( check.find(), Jaw.getSchema() );
+        var result = Validator.validate( check.find(), Jaw.getSchema() );
 
-        if ( err.length > 0 ) {
-          errors.push( err );
+        if ( result.length > 0 ) {
+          errStack.concat( result );
         } else {
           manager.update( path, arr, errHandler);
           validateManager();
-        }
+        };
         return Jaw;
-    }
+    };
 
     function shiftPop( path, shiftPop ) {
         // Returns element or undefined
-        var check = new ObjectManager( JSON.clone( Jaw.get() ) );
+        var check = new ObjectManager( JSON.clone( Jaw._get() ) );
         var arr = check.find(path);
 
         var result = undefined;
@@ -940,70 +976,79 @@ var jaw = function( Schema, instance ) {
                 result = arr.pop();
             }
         } else {
-            errors.push("Jaw.pop: path does not result in array.");
-        }
+            errStack.unshift("Jaw.pop: path does not result in array.");
+        };
 
-        var err = Validator.validate( check.find(), Jaw.getSchema() );
+        var result = Validator.validate( check.find(), Jaw.getSchema() );
 
-        if ( err.length > 0 ) {
-          errors.push( err );
+        if ( result.length > 0 ) {
+          errStack.concat( result );
           return result; 
         } else {
           manager.update( path, arr, errHandler);
           validateManager();
-        }
+        };
         return result;
     };
 
     Jaw.push = function( path /* element, element, etc */ ) {
+        if ( pathNotOK(path) ) { return Jaw; };
+        Jaw.update();
         var args = Array.prototype.slice.call(arguments, Jaw.push.length);
         return unshiftPush( path, false, args );
     };
 
     Jaw.pop = function ( path ) {
+        if ( pathNotOK(path) ) { return Jaw; };
+        Jaw.update();
         return shiftPop( path, false );
     }
 
     Jaw.unshift = function( path /* element, element, etc */ ) {
+        if ( pathNotOK(path) ) { return Jaw; };
+        Jaw.update();
         var args = Array.prototype.slice.call(arguments, Jaw.unshift.length);
         return unshiftPush( path, true, args );
     };
 
     Jaw.shift = function ( path ) {
+        if ( pathNotOK(path) ) { return Jaw; };
+        Jaw.update();
         return shiftPop( path, true );
     };
 
     Jaw.splice = function( path, index, del /* element, element, etc */ ) {
+        if ( pathNotOK(path) ) { return Jaw; };
+        Jaw.update();
         var args = Array.prototype.slice.call(arguments, Jaw.splice.length);
-
-        var check = new ObjectManager( JSON.clone( Jaw.get() ) );
+        var check = new ObjectManager( JSON.clone( Jaw._get() ) );
         var arr = check.find(path);
 
         if( arr === undefined || arr === false ) {
             arr = new Array(index+del);
-        }
+        };
 
         if ( Array.isArray(arr) ) {
             if( (index+del) <= arr.length ) {
                 Array.prototype.splice.apply(arr, [index,del].concat(args) );
                 check.update(path, arr);
             } else {
-                errors.push("Jaw.splice: index out of range.");
+                errStack.unshift("Jaw.splice: index out of range.");
                 return Jaw;
             }
         } else {
-            errors.push("Jaw.splice: path does not result in array.");
+            errStack.unshift("Jaw.splice: path does not result in array.");
             return Jaw;
-        }
+        };
 
-        var err = Validator.validate( check.find(), Jaw.getSchema() );
+        var result = Validator.validate( check.find(), Jaw.getSchema() );
 
-        if ( err.length > 0 ) {
-          errors.push( err );
+        if ( result.length > 0 ) {
+            errStack.concat( result );
         } else {
-          manager.update( path, arr, errHandler);
-          validateManager();
-        }
+            manager.update( path, arr, errHandler);
+            validateManager();
+        };
         return Jaw;
     };
 
@@ -1011,10 +1056,12 @@ var jaw = function( Schema, instance ) {
         var route = path.split(".");
         while (route.length-1 && (obj = obj[route.shift()]));
         delete obj[route.shift()];
-    }
+    };
 
     Jaw.delete = function ( path ) {
-        var clone = JSON.clone( Jaw.get() );
+        if ( pathNotOK(path) ) { return Jaw; };
+        Jaw.update();
+        var clone = JSON.clone( Jaw._get() );
         deleteProp( clone, path );
         
         // If any prop is delted that is required add it again
@@ -1022,14 +1069,30 @@ var jaw = function( Schema, instance ) {
         Jaw.copyKeys(Jaw.getTemplate( false ), clone);
         
         var check = new ObjectManager( clone );
-        var err = Validator.validate( check.find(), Jaw.getSchema() );
+        var result = Validator.validate( check.find(), Jaw.getSchema() );
 
-        if ( err.length > 0 ) {
-          errors.push( err );
+        if ( result.length > 0 ) {
+          errStack.concat( result );
         } else {
-          Jaw.wrap( clone );
+          deleteProp( Jaw._get(), path );
+          Jaw.copyKeys(Jaw.getTemplate( false ), Jaw._get() );
           validateManager();
-        }
+        };
+        return Jaw;
+    };
+
+    Jaw.update = function() {
+        // Reload instance/reference
+        // in case object is updated
+        // outside of this manager
+        Jaw.wrap( Jaw.getObjRef() );
+    };
+
+    Jaw.reset = function() {
+        // Reloads instance/reference
+        // and clears error stack
+        errStack = new Array();
+        Jaw.update();
         return Jaw;
     };
 
@@ -1037,17 +1100,18 @@ var jaw = function( Schema, instance ) {
     // Initialise
     //-----------------
     setSchema( Schema );
-    if( errors.length === 0 ) {
+    if( errStack.length === 0 ) {
         // Start managing something
-        manager = new ObjectManager( Jaw.getTemplate( false ) );
+        Jaw.setObjRef( Jaw.getTemplate( false ) );
+        manager = new ObjectManager( Jaw.getObjRef() );
     };
 
     if(Jaw.isValid() && (typeof instance !== 'undefined') ) {
         if(typeof instance === 'boolean') {
-            Jaw.wrap(Jaw.getTemplate( instance ) );
+            Jaw.wrap( Jaw.getTemplate( instance ) );
         } else if(typeof instance !== 'object') {
             _valid.managed = false;
-            errors.unshift("Initialisation Error: Can't get Jaw arround non-object");
+            errStack.unshift("Initialisation Error: Can't get Jaw arround non-object");
         } else {
             Jaw.wrap(instance);
         }

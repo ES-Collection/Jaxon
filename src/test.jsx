@@ -220,7 +220,7 @@ var tests = {
     // We need to set a few things here so we can do some spot checks
     Jaxon.UiPreset.setProp('name',"New Name");
     assert("UiPreset.setProp failed", Jaxon.UiPreset.get().name == "New Name");
-    var ok = Jaxon.reset();
+    var ok = Jaxon.reset( true );
     assert("Something went wrong resetting Jaxon", Jaxon.UiPreset.get().name == "New Preset");
   },
 
@@ -352,10 +352,10 @@ function runTests(){
     try {
         reset_testEnv( standardPresets, Schema );
         tests[test]();
-        console.log('OK: ' + test);
-    } catch (e) {
+        console.log( "OK: " + test);
+    } catch (err) {
         result = "Fail";
-        console.log(test + " failed: " + e.description + "(Line " + e.line + " in file " + e.fileName + ")");
+        console.log( "FAILED: " + test + ": " + JSON.stringify(err) );
     }
   }
   return result;
