@@ -150,6 +150,15 @@ var presetManager = function( fileName, Schema, standardPresets ) {
         return updateObj( oldPreset, newPreset, ignoreKeys );
     }
 
+    function calcIndex( pos, len ) {
+        // Calculate the actual preset index
+        // Done to catch negative values
+        var i = pos;
+        if ( pos < 0 ) {
+            i = len - Math.abs(pos);
+        }
+        return Math.abs(i);
+    }
 
     // P R E S E T   C O N T R O L L E R
     //-------------------------------------------------
@@ -271,15 +280,6 @@ var presetManager = function( fileName, Schema, standardPresets ) {
                 }
             }
             return false;
-        }
-
-        function calcIndex( pos, len ) {
-            // Calculate actual index
-            var i = pos;
-            if ( pos < 0 ) {
-                i = len - Math.abs(pos);
-            }
-            return Math.abs(i);
         }
 
         function outOfRange( pos, len ) {
@@ -556,19 +556,11 @@ var presetManager = function( fileName, Schema, standardPresets ) {
         var updateUI       = true;
         var listKey        = "";
 
-        function getDropDownIndex( index, len ) {
-            var i = parseInt( index );
-            if (i == 0) {
-                return i;
-            }
-            if (i < 0) {
-                i += len;
-            }
-            if (i > len ) {
-                i = len;
-            }
-            return i;
-        }
+        function getDropDownIndex( index ) {
+            var len = Jaxon.Presets.getPropList( listKey ).length;
+            var i = calcIndex( parseInt(index), len );
+            return i+1; // [New Preset]
+        };
 
         function createDropDownList(){
             // Check listKey and load dropDown content
@@ -653,12 +645,12 @@ var presetManager = function( fileName, Schema, standardPresets ) {
             return createMsg( false, "Widget is not loaded.");
         }
 
-        WidgetCreator.loadIndex = function( i ) {
+        WidgetCreator.loadIndex = function( index ) {
             // Load data in UiPreset
-            Jaxon.UiPreset.loadIndex( i );
+            Jaxon.UiPreset.loadIndex( index );
             // Update SUI
             DataPort.renderUiPreset();
-            presetsDrop.selection = getDropDownIndex( i+1, presetDropList.length );
+            presetsDrop.selection = getDropDownIndex( index );
             return true;
         }
 
@@ -709,7 +701,7 @@ var presetManager = function( fileName, Schema, standardPresets ) {
             // Attach new widget to SUI_Group
             presetsDrop = SUI_Group.add('dropdownlist', undefined, presetDropList);
             presetsDrop.alignment = 'fill';
-            presetsDrop.selection = getDropDownIndex( onloadIndex, presetDropList.length );
+            presetsDrop.selection = getDropDownIndex( onloadIndex );
 
             presetsDrop.onChange = function () { 
                 if(updateUI) {
@@ -784,18 +776,20 @@ var presetManager = function( fileName, Schema, standardPresets ) {
                 Jaxon.Presets.saveToDisk();
             }
             
-            // Load selected dropdown
+            // Init UI filler
             if( isNaN(onloadIndex) ) {
-                WidgetCreator.loadIndex( onloadIndex );
+                // Render session state
+                DataPort.renderUiPreset();                
             } else {
-                // AKA load session state
-                DataPort.renderUiPreset();
+                // Load selected index
+                WidgetCreator.loadIndex( onloadIndex );
             }
+
             return createMsg( true, "Done");
+
         }
 
-    } // End Widget
-
+    }; // End Widget
 
     //-------------------------------------------------
     // S T A R T  P U B L I C   A P I
@@ -832,12 +826,11 @@ var presetManager = function( fileName, Schema, standardPresets ) {
 
     Jaxon.UiPreset.loadIndex = function ( index ) {
         var len = Jaxon.Presets.get().length;
-        var i = Math.abs(parseInt(index));
-        if(i > len-1) {
+        if(Math.abs(parseInt(index)) > len-1) {
             alert("Preset Manager\nLoad index is not a valid preset index: " + index);
             return createMsg ( false, "Not a valid preset index." );
         }
-        Jaxon.UiPreset.load( Jaxon.Presets.getByIndex( i ) );
+        Jaxon.UiPreset.load( Jaxon.Presets.getByIndex( index ) );
         return createMsg ( true, "Done" );
     }
 
