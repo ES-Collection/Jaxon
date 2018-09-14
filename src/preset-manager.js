@@ -503,58 +503,56 @@ var presetManager = function( fileName, Schema, standardPresets ) {
     //-------------------------------------------------
 
     function widgetCreator( SUI_Group ) {
-
+        // Global widgetCreator vars
         var WidgetCreator = this;
         var DataPort      = { getData: undefined, renderUiPreset: undefined };
+        var ButtonText    = {save: "Save Preset", clear: "Clear Preset"};
+        var newName       = "New Preset";
+        var lastUsedName  = "Last Used";
+        var lockChars = ['[',']']; // Any preset that starts with a locking character can't be deleted by the user
 
-        WidgetCreator.get = function () {
-            if(DataPort) {
-                return DataPort.getData();
-            } else {
-                return createMsg ( false, "No dataport defined" );
-            }
-        }
-
-        // Any preset that starts with a locking character can't be deleted by the user
-        var lockChars = ['[',']'];
-        WidgetCreator.getLockChars = function () {
-            return lockChars;
-        }
-
-        var ButtonText = {save: "Save Preset", clear: "Clear Preset"};
-        WidgetCreator.getButtonText = function () {
-            return ButtonText;
-        }
-
-        var newName = "New Preset";
-        WidgetCreator.getNewPresetName = function () {
-            return newName;
-        }
-
-        var lastUsedName = "Last Used";
-        WidgetCreator.getLastUsedPresetName = function () {
-            return lastUsedName;
-        }
-
-        // Keep track of which preset this preset is based on
+        // The following variables track which preset this preset is based on
         // This makes it easy to over-ride an existing preset
         var basedOnPresetName = newName;
-
         var newPresetName      = "";
         var lastUsedPresetName = "";
 
-        function updatePresetNames() {
-            newPresetName      = String(lockChars[0] + " " + newName      + " " + lockChars[1]);
-            lastUsedPresetName = String(lockChars[0] + " " + lastUsedName + " " + lockChars[1]);
-        }
-
-        // This makes it possible to update UI everytime UiPreset is changed
+        // The following variables make it possible to update UI every time UiPreset is changed
         // Even when the widget is not loaded
         var presetsDrop    = { selection: 0 };
         var presetBut      = { text: "" };
         var presetDropList = [];
         var updateUI       = true;
         var listKey        = "";
+
+        WidgetCreator.get = function () {
+            if( DataPort.hasOwnProperty('getData') && typeof DataPort.getData === 'function' ) {
+                return DataPort.getData();
+            } else {
+                return createMsg ( false, "No data port defined" );
+            }
+        }
+
+        WidgetCreator.getLockChars = function () {
+            return lockChars;
+        }
+
+        WidgetCreator.getButtonText = function () {
+            return ButtonText;
+        }
+
+        WidgetCreator.getNewPresetName = function () {
+            return newName;
+        }
+
+        WidgetCreator.getLastUsedPresetName = function () {
+            return lastUsedName;
+        }
+
+        function updatePresetNames() {
+            newPresetName      = String(lockChars[0] + " " + newName      + " " + lockChars[1]);
+            lastUsedPresetName = String(lockChars[0] + " " + lastUsedName + " " + lockChars[1]);
+        }
 
         function getDropDownIndex( index ) {
             var len = Jaxon.Presets.getPropList( listKey ).length;
@@ -579,7 +577,7 @@ var presetManager = function( fileName, Schema, standardPresets ) {
         }
 
         WidgetCreator.activateLastUsed = function () {
-            // This function resets the dropdown to last (Last Used)
+            // This function resets the drop-down to last (Last Used)
             presetsDrop.selection = Jaxon.Presets.getIndex( listKey, lastUsedPresetName )[0]+1;
             presetBut.text = ButtonText.save;
             return createMsg ( true, "Done" );
@@ -661,10 +659,12 @@ var presetManager = function( fileName, Schema, standardPresets ) {
             if(! (Port && Port.hasOwnProperty('renderData') && Port.hasOwnProperty('getData')) ) {
                 return createMsg( false, "Could not establish data port.");
             }
+
             DataPort.renderUiPreset = function () {
                 basedOnPresetName = String( Jaxon.UiPreset.getProp(listKey) );
                 Port.renderData( Jaxon.UiPreset.get() );
             }
+
             DataPort.getData = Port.getData;
 
             // Process Options
@@ -702,6 +702,8 @@ var presetManager = function( fileName, Schema, standardPresets ) {
             presetsDrop = SUI_Group.add('dropdownlist', undefined, presetDropList);
             presetsDrop.alignment = 'fill';
             presetsDrop.selection = getDropDownIndex( onloadIndex );
+
+            presetBut = SUI_Group.add('button', undefined, ButtonText.save);
 
             presetsDrop.onChange = function () { 
                 if(updateUI) {
@@ -743,8 +745,6 @@ var presetManager = function( fileName, Schema, standardPresets ) {
                 return createMsg( true, "Done");
             }
 
-            presetBut = SUI_Group.add('button', undefined, ButtonText.save);
-
             function _addUiPresetToPresets( defaultName ) {
                 var defaultName = defaultName || basedOnPresetName;
                     defaultName = String( defaultName );
@@ -766,9 +766,10 @@ var presetManager = function( fileName, Schema, standardPresets ) {
             }
 
             presetBut.onClick = function () { 
-                if( this.text == ButtonText.clear ) {
+                if( presetBut.text == ButtonText.clear ) {
                     Jaxon.Presets.remove( presetsDrop.selection.index - 1 );
                     WidgetCreator.reset();
+                    presetBut.text = ButtonText.save;
                 } else { // Save preset
                     Jaxon.UiPreset.load( DataPort.getData() );
                     _addUiPresetToPresets();
@@ -826,8 +827,8 @@ var presetManager = function( fileName, Schema, standardPresets ) {
 
     Jaxon.UiPreset.loadIndex = function ( index ) {
         var len = Jaxon.Presets.get().length;
-        if(Math.abs(parseInt(index)) > len-1) {
-            alert("Preset Manager\nLoad index is not a valid preset index: " + index);
+        if(Math.abs(parseInt(index)) > len) {
+            alert("Preset Manager\nLoad index is not a valid preset index. ( " + index + " )");
             return createMsg ( false, "Not a valid preset index." );
         }
         Jaxon.UiPreset.load( Jaxon.Presets.getByIndex( index ) );
